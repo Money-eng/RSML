@@ -86,3 +86,18 @@ Tab Position
 
 script : rsmlanalysis rsmls.txt| *.rsml
 TODO: define options to group all the analysis in a same file (csv) or in several files.
+
+@Money-eng MODIFS 
+need to do -> pip install . (or equivalent)
+
+Root_System_class for : 
+- reading data from 2D+t annotations (hirros)
+- correct some annotations (date maps)
+- visualizing it with napari 
+- Save mtg to RSML with time, time_in_hours and diameter being taken as a function (not in metadata)
+
+Get_Right_Diameter for : 
+- estimating diameter of every node of graph with very basic skeletton x graph matching 
+
+CustomDumper for : 
+- re-write of src/rsml/io.py so with corrected 'functions' management and loading "time in hours" in hirros metadata
