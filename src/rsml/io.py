@@ -321,7 +321,6 @@ class Parser(object):
                 # Error
                 print('Invalid Annotation format', elt.tag)
 
-
 class Annotation(object):
     def __init__(self, name):
         self.name = name
@@ -359,7 +358,6 @@ def read_xml_tree(elt):
     else:
         return elt.text
             
-
 ##########################################################################
 # Create an XML file from an MTG
 
@@ -411,9 +409,13 @@ class Dumper(object):
 
     def metadata(self):
         g = self._g
+        
         self.xml_meta = xml.SubElement(self.xml_root,'metadata')
 
         gmetadata = metadata.set_metadata(g)
+        list_metadata = metadata.flat_metadata
+        if 'observation-hours' not in list_metadata:
+            list_metadata.append('observation-hours')
         
         for tag in metadata.flat_metadata:
             self.SubElement(self.xml_meta, tag=tag, text=str(gmetadata[tag]))
@@ -458,7 +460,6 @@ class Dumper(object):
             for tag in tags:
                 self.SubElement(pdef, tag=tag, text=str(prop[tag]))
 
-
     def scene(self):
         g = self._g
 
@@ -484,8 +485,6 @@ class Dumper(object):
             #         continue
 
             #     self.process_vertex(vid)
-
-
 
     def plant(self, vid):
         g = self._g
@@ -513,15 +512,17 @@ class Dumper(object):
 
         # set xml attributes
         props = g[vid]
+        
         axis.attrib['id']    = str(props.pop('id', vid))
         axis.attrib['label'] = str(props.pop('label', g.label(vid)))
         if 'po:accession' in props:
             axis.attrib['po:accession'] = str(props.pop('po:accession'))
 
         # set xml axis element
-        self.properties(vid, axis)
-        ##self.functions(axis,**props)
         self.geometry(axis,**props)
+        self.functions(axis,**props)
+        self.properties(vid, axis)
+        
         
         # process children root axis
         # --------------------------
@@ -534,7 +535,7 @@ class Dumper(object):
         `axis` is the xml element id of the root axis
         `props` should contain a suitable 'geometry' attribute
         
-        TODO: other geometry types?
+        TODO: other geometry types? In progress for 2D+t
         """
         if 'geometry' in props:
             polyline = props['geometry']
@@ -583,12 +584,12 @@ class Dumper(object):
         for tag in pname:
             if tag in props:
                 if functions_elt is None:
-                    functions_elt = self.SubElement(xml_elt, 'functions')
+                    functions_elt = self.SubElement(axis, 'functions')
                 function_elt = self.SubElement(functions_elt, 'function')
                 function_elt.attrib['domain'] = 'polyline'
                 function_elt.attrib['name'] = tag
         
-                for sample in attrib[tag]:
+                for sample in props[tag]:
                     sample_elt = self.SubElement(function_elt, 'sample')
                     if isinstance(sample, (tuple, list)) and len(sample)  == 2:
                         sample_elt.attrib['position'] = str(sample[0])
@@ -596,8 +597,6 @@ class Dumper(object):
                     else:
                         sample_elt.attrib['value'] = str(sample)
                         
-                        
-
 ##########################################################################
 # Wrapper functions for OpenAlea usage.
 
@@ -607,7 +606,6 @@ def rsml2mtg(rsml_graph, debug=False):
     """
     parser = Parser()
     return parser.parse(rsml_graph, debug=debug)
-    
 
 def mtg2rsml(g, rsml_file):
     """
