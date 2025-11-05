@@ -8,6 +8,7 @@ from copy import deepcopy
 from typing import List, Dict
 from SimpleITK import Transform
 import SimpleITK as sitk
+from re import findall
 from rsml import rsml2mtg
 
 
@@ -46,14 +47,32 @@ def transform_mtg_geometry(g: MTG, transform: Transform) -> MTG:
 
     for v in g_transformed.vertices():
         geometry = g_transformed.properties().get("geometry", {}).get(v, None)
-        if geometry: # 
+        if geometry:
             for i, point in enumerate(geometry):
-                point_2d = (point[0], point[1])  # Assuming point is (x, y, z) or similar
+                point_2d = (point[0], point[1], 0)
                 point_transformed = transform.TransformPoint(point_2d)
                 geometry[i] = (point_transformed[0], point_transformed[1])  # no z-coordinate
 
     return g_transformed
 
+def match_plants_list(g_list: List[MTG], max_distance: float = None) -> List[Dict]:
+    """Match plants across a list of MTGs.
+
+    Args:
+        g_list (List[MTG]): List of MTGs to match.
+        max_distance (float, optional): Maximum distance for matching. Defaults to None.
+
+    Returns:
+        List[Dict]: List of match results between consecutive MTGs.
+    """
+    from rsml.matching import match_plants
+
+    match_results = []
+    for i in range(len(g_list) - 1):
+        match_result = match_plants(g_list[i], g_list[i + 1], max_distance=max_distance)
+        match_results.append(match_result)
+
+    return match_results
 
 #############################################################################################################################################################
 # 1 2D+t -> n 2D
@@ -114,8 +133,10 @@ def load_transform_from_folder(folder: str) -> List[Transform]:
         List[Transform]: List of SimpleITK transforms.
     """
     transforms = []
-    for file in sorted(os.listdir(folder)):  # sorted 
-        if file.endswith(".tfm"):
+    # sorted must be regarding number in filename
+    print(sorted(os.listdir(folder), key=lambda x: int(findall(r'\d+', x)[0])))
+    for file in sorted(os.listdir(folder), key=lambda x: int(findall(r'\d+', x)[0])):
+        if file.endswith(".txt") or file.endswith(".tif") or file.endswith(".tfm"):
             transform_path = os.path.join(folder, file)
             transform = sitk.ReadTransform(transform_path)
             transforms.append(transform)
@@ -123,7 +144,12 @@ def load_transform_from_folder(folder: str) -> List[Transform]:
 
 graph = rsml2mtg("/home/loai/Images/DataTest/UC1_data/Val/230629PN019/61_graph.rsml")
 # define small affine transform (x = x +10, y = y + 0)
-affine = sitk.AffineTransform(2)
-affine.Translate((10, 0))
+transforms = load_transform_from_folder("/home/loai/Images/DataTest/UC3/Output_Data/Process/B73_R05_01/Transforms_1")
+# plot transforms[0] and see effect
+print(transforms[0])
+print(transforms[0].GetParameters())
+print(transforms[0].GetFixedParameters())
+print(transforms[0].GetName())
+print(transforms[0].GetInverse())
 # apply transform to geometry of mtg
-transformed_graph = transform_mtg_geometry(graph, affine)
+transformed_graph = transform_mtg_geometry(graph, transforms[0])
